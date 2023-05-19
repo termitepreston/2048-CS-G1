@@ -8,6 +8,9 @@
 # Build directory
 build/
 
+# .cache directory
+.cache
+
 # Compiled Object files
 *.slo
 *.lo
