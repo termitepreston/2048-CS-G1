@@ -1,3 +1,4 @@
+#include "grid.h"
 #include <SDL.h>
 #include <SDL_error.h>
 #include <SDL_events.h>
@@ -18,16 +19,22 @@
 #include <iostream>
 #include <signal.h>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "./anim.h"
 #include "./math.h"
 #include "./utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "libs/stb_image.h"
+
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "libs/stb_truetype.h"
 
 
 static int audio_open   = 0;
@@ -58,6 +65,7 @@ struct Game {
     SDL_GLContext gl_context;
     std::filesystem::path assets_dir;
     std::unordered_map<const char*, GLuint> textures;
+    std::stack<State> states;
 };
 
 GameError init_game(Game* game,
@@ -138,6 +146,9 @@ GameError init_game(Game* game,
     glDebugMessageCallback(&opengl_debug_callback, 0);
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
     SDL_Log("OpenGL context created successfully: %p\n", game->gl_context);
@@ -221,21 +232,12 @@ void quit_game(Game* game) {
     SDL_Log("Quited SDL.\n");
 }
 
-static const GLubyte tex_checkerboard_data[] = {
-    0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
-    0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
-    0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF
-};
 
 GameError load_textures(Game* game) {
 
     std::vector<std::pair<std::filesystem::path, const char*>> files_tags = {
-        { game->assets_dir / "bg-v1.png", "bg" }
+        { game->assets_dir / "bg-v1.png", "bg" },
+        { game->assets_dir / "2048.png", "2048" }
     };
 
     for (const auto& pair : files_tags) {
@@ -266,10 +268,12 @@ GameError load_textures(Game* game) {
         unsigned char* data =
             stbi_load(files_tags[i].first.c_str(), &width, &height, &nr_channels, 0);
 
-        SDL_Log("Image[%d] stats: width: %d, height: %d, "
+        SDL_Log("Image[%i] \'%s\' stats: width: %d, "
+                "height: %d, "
                 "nr "
                 "of channels: %d\n",
                 i,
+                files_tags[i].second,
                 width,
                 height,
                 nr_channels);
@@ -391,12 +395,6 @@ void render_sprite(Game* game,
 }
 
 
-struct Cell {
-    Vec2 position;
-};
-
-Cell c0 = { { 1.5, 1.5 } };
-
 enum AnimState {
     ANIM_STARTING,
     ANIM_RUNNING,
@@ -405,8 +403,11 @@ enum AnimState {
 
 AnimState current_anim_state = ANIM_STARTING;
 
+const float zeta  = 0.23;
+const float omega = 3 * 3.141592653589793;
 
-void update(Uint64 dt) {
+
+void update(Uint64 dt, Cell* cell, Grid* grid) {
 
     /*
      * we have an animation fsm whose individual states are
@@ -444,6 +445,13 @@ void update(Uint64 dt) {
      * Nothing is done to the cells internal state.
      *
      */
+
+    spring(cell->position.x,
+           cell->velocity.x,
+           grid->cells[2].position.x,
+           zeta,
+           omega,
+           (float)dt / 1000.0f);
 }
 
 void handle_input(const SDL_Event& event, AnimState* state) {
@@ -580,6 +588,18 @@ int main(int argc, char* argv[]) {
 
     bool game_running = true;
 
+    Grid grid;
+    init_grid(&grid,
+              {
+                  50.0f,
+                  50.0f,
+              },
+              4,
+              5.0f,
+              5.0f,
+              5.0f,
+              75.0f);
+
     while (game_running) {
 
         Uint64 current_time = SDL_GetTicks64();
@@ -600,7 +620,7 @@ int main(int argc, char* argv[]) {
         }
 
         while (lag_time >= UPDATE_RATE) {
-            update(dt);
+            update(dt, &grid.cells[0], &grid);
             lag_time -= UPDATE_RATE;
         }
 
@@ -614,6 +634,14 @@ int main(int argc, char* argv[]) {
                       { (float)game.win_width, (float)game.win_height },
                       0,
                       { 2, 2, 2 });
+        render_sprite(&game,
+                      "2048",
+                      &renderer,
+                      "sprite",
+                      grid.cells[0].position,
+                      grid.cells[0].size,
+                      0,
+                      { 0, 0, 0 });
 
         SDL_GL_SwapWindow(game.window);
 
