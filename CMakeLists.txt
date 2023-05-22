@@ -15,7 +15,7 @@ find_package(SDL2_ttf REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(2048 main.cpp utils.cpp math.cpp anim.cpp grid.cpp)
+add_executable(2048 main.cpp utils.cpp math.cpp anim.cpp grid.cpp state.cpp game.cpp renderer.cpp)
 add_executable(test main_test.cpp)
 target_link_libraries(test PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(2048 SDL2 SDL2_image SDL2_mixer SDL2_ttf OpenGL)
