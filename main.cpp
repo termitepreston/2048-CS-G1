@@ -33,7 +33,7 @@
 #include "utils.h"
 
 
-const int UPDATE_RATE = 1000 / 120; // update rate = 8.33 ms per frame.
+const int UPDATE_RATE = 1000 / 120; // update rate = 16.66 ms per frame.
 
 
 enum AttribId { attrib_position, attrib_color };
@@ -167,18 +167,18 @@ int main(int argc, char* argv[]) {
         return err;
     }
 
-    GLuint main_shader;
-
-    err = create_shader_program(game.assets_dir / "shaders" / "main.vs.glsl",
-                                game.assets_dir / "shaders" / "main.fs.glsl",
-                                &main_shader);
+    GLuint blink_shader;
+    err = create_shader_program(game.assets_dir / "shaders" / "blink.vs.glsl",
+                                game.assets_dir / "shaders" / "blink.fs.glsl",
+                                &blink_shader);
     if (err != 0) {
-        SDL_Log("Failed to create a shader program\n");
+        SDL_Log(
+            "Failed to create blink shader program\n");
         quit_game(&game);
         return err;
     }
 
-    add_shader(&renderer, std::make_pair("main", main_shader));
+    add_shader(&renderer, std::make_pair("blink", blink_shader));
     add_shader(&renderer, std::make_pair("sprite", sprite_shader));
 
 
@@ -197,7 +197,7 @@ int main(int argc, char* argv[]) {
                  0.0f,
                  100.0f);
 
-    print_mat4x4("Projection Matrix", projection_matrix);
+    print_mat4x4("Projection Matrix - Sprite", projection_matrix);
 
 
     glUseProgram(renderer.shaders["sprite"]);
@@ -210,6 +210,12 @@ int main(int argc, char* argv[]) {
     glUniform1i(
         glGetUniformLocation(renderer.shaders["sprite"], "image"), 0);
 
+
+    IntroState intro;
+    intro_state_init(&intro, &game, &renderer);
+    State state = { .intro = intro };
+
+    game.states.push(state);
 
     const char* typ = NULL;
 
@@ -247,7 +253,7 @@ int main(int argc, char* argv[]) {
               5.0f,
               75.0f);
 
-    while (game_running) {
+    while (game.running) {
 
         Uint64 current_time = SDL_GetTicks64();
         Uint64 dt           = current_time - prev_time;
@@ -258,38 +264,55 @@ int main(int argc, char* argv[]) {
         SDL_Event event;
 
         while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_QUIT:
-                    game_running = false;
+            switch (game.states.top().state_id) {
+                case INTRO_STATE:
+                    intro_state_handle_input(&game, &event);
                     break;
+                case GAMEPLAY_STATE: break;
                 default: break;
             }
         }
 
         while (lag_time >= UPDATE_RATE) {
-            update(dt, &grid.cells[0], &grid);
+            // update(dt, &grid.cells[0], &grid);
+            switch (game.states.top().state_id) {
+                case INTRO_STATE:
+                    intro_state_update(&game.states.top().intro);
+                    break;
+                case GAMEPLAY_STATE: break;
+                default: break;
+            }
             lag_time -= UPDATE_RATE;
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        render_sprite(&game,
-                      "bg",
-                      &renderer,
-                      "sprite",
-                      { 0, 0 },
-                      { (float)game.win_width, (float)game.win_height },
-                      0,
-                      { 2, 2, 2 });
-        render_sprite(&game,
-                      "2048",
-                      &renderer,
-                      "sprite",
-                      grid.cells[0].position,
-                      grid.cells[0].size,
-                      0,
-                      { 0, 0, 0 });
+        switch (game.states.top().state_id) {
+            case INTRO_STATE:
+                intro_state_render(&game.states.top().intro, &game, &renderer);
+                break;
+            case GAMEPLAY_STATE:
+                render_sprite(&game,
+                              "bg",
+                              &renderer,
+                              "sprite",
+                              { 0, 0 },
+                              { (float)game.win_width,
+                                (float)game.win_height },
+                              0,
+                              { 2, 2, 2 });
+                render_sprite(&game,
+                              "2048",
+                              &renderer,
+                              "sprite",
+                              grid.cells[0].position,
+                              grid.cells[0].size,
+                              0,
+                              { 0, 0, 0 });
+                break;
 
+            default: break;
+        }
         SDL_GL_SwapWindow(game.window);
 
 

@@ -1,4 +1,5 @@
 #include "game.h"
+#include "state.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "libs/stb_image.h"
@@ -130,6 +131,8 @@ GameError init_game(Game* game,
                                      "streo",
             audio_buffers);
 
+    game->running = true;
+
     SDL_Log("Game initialized successfully.\n");
 
 
@@ -187,7 +190,18 @@ GameError load_textures(Game* game) {
 
     std::vector<std::pair<std::filesystem::path, const char*>> files_tags = {
         { game->assets_dir / "bg-v1.png", "bg" },
-        { game->assets_dir / "2048.png", "2048" }
+        { game->assets_dir / "2.png", "2" },
+        { game->assets_dir / "4.png", "4" },
+        { game->assets_dir / "8.png", "8" },
+        { game->assets_dir / "16.png", "16" },
+        { game->assets_dir / "32.png", "32" },
+        { game->assets_dir / "64.png", "64" },
+        { game->assets_dir / "128.png", "128" },
+        { game->assets_dir / "256.png", "256" },
+        { game->assets_dir / "512.png", "512" },
+        { game->assets_dir / "1024.png", "1024" },
+        { game->assets_dir / "2048.png", "2048" },
+        { game->assets_dir / "press.png", "press" }
     };
 
     for (const auto& pair : files_tags) {

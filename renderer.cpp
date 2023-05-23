@@ -41,6 +41,10 @@ void init_renderer(Renderer* renderer) {
     glBindVertexArray(0);
 }
 
+void use_shader(Renderer* renderer, const char* shader) {
+    glUseProgram(renderer->shaders[shader]);
+}
+
 void render_sprite(Game* game,
                    const char* tex,
                    Renderer* renderer,

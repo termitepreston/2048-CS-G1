@@ -27,6 +27,7 @@ struct Game {
     SDL_Window* window;
     int win_width, win_height;
     SDL_GLContext gl_context;
+    bool running;
     std::filesystem::path assets_dir;
     std::unordered_map<std::string, GLuint> textures;
     Mix_Music* music;

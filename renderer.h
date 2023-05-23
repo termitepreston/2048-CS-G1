@@ -15,6 +15,8 @@ struct Renderer {
     GLuint sprite_vbo;
 };
 
+void use_shader(Renderer* renderer, const char* shader);
+
 void add_shader(Renderer* renderer,
                 std::pair<const char*, GLuint> program);
 
