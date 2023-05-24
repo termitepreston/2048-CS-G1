@@ -4,8 +4,6 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
 
 enum GameError {
     GAME_ERROR_NO_ERROR = 0,
@@ -32,13 +30,5 @@ GameError read_whole_file_text(const char* file_path, std::string& out);
 GameError read_whole_file_binary(const char* file_path,
                                  std::vector<char>& out);
 
-
-/*
- * Opens shader source from shader assets directory and
- * builds opengl shader program.
- */
-GameError create_shader_program(std::filesystem::path vert_shader_path,
-                                std::filesystem::path frag_shader_path,
-                                GLuint* program);
 
 #endif // !UTILS_H
