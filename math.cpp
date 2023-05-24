@@ -1,5 +1,4 @@
 #include "./math.h"
-#include <SDL_log.h>
 #include <cmath>
 #include <cstring>
 #include <iomanip>
@@ -256,5 +255,5 @@ void print_mat4x4(const char* typ, Mat4x4 mat) {
     }
     sout << "]";
 
-    SDL_Log("%s\n", sout.str().c_str());
+    printf("%s\n", sout.str().c_str());
 }

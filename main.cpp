@@ -5,6 +5,7 @@
 #include "state.h"
 #include "utils.h"
 
+#include <SFML/System/Time.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -143,48 +144,49 @@ int main(int argc, char* argv[]) {
 
 
     sf::Time lag_time;
+    sf::Time update_rate = sf::microseconds(8333);
     sf::Clock clock;
 
 
-    Grid grid;
-    init_grid(&grid,
-              {
-                  50.0f,
-                  50.0f,
-              },
-              4,
-              5.0f,
-              5.0f,
-              5.0f,
-              75.0f);
-
     while (game.window.isOpen()) {
 
-        sf::Time elapsed = clock.getElapsedTime();
+        sf::Time elapsed = clock.restart();
         lag_time += elapsed;
 
 
         sf::Event event;
         while (game.window.pollEvent(event)) {
+            // Check if close siganl is received...
+            if (event.type == sf::Event::Closed) {
+                game.window.close();
+            }
+
             switch (game.states.top().state_id) {
                 case INTRO_STATE:
                     intro_state_handle_input(&game, event);
                     break;
-                case GAMEPLAY_STATE: break;
+                case GAMEPLAY_STATE:
+                    game_state_handle_input(&game, event);
+                    break;
                 default: break;
             }
         }
 
-        while (lag_time.asMilliseconds() >= UPDATE_RATE) {
+
+        while (lag_time >= update_rate) {
             // update(dt, &grid.cells[0], &grid);
             switch (game.states.top().state_id) {
                 case INTRO_STATE:
-                    intro_state_update(&game.states.top().intro);
+                    intro_state_update(&game.states.top().intro,
+                                       update_rate);
                     break;
-                case GAMEPLAY_STATE: break;
+                case GAMEPLAY_STATE:
+                    game_state_update(&game.states.top().game_play,
+                                      update_rate);
+                    break;
                 default: break;
             }
-            lag_time -= sf::milliseconds(UPDATE_RATE);
+            lag_time -= update_rate;
         }
 
         game.window.clear();
@@ -193,7 +195,9 @@ int main(int argc, char* argv[]) {
             case INTRO_STATE:
                 intro_state_render(&game.states.top().intro, &game);
                 break;
-            case GAMEPLAY_STATE: break;
+            case GAMEPLAY_STATE:
+                game_state_render(&game.states.top().game_play, &game);
+                break;
 
             default: break;
         }
